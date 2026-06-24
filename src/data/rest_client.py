@@ -6,7 +6,11 @@ import time
 from typing import Any, Optional
 
 from binance.um_futures import UMFutures
-from binance.spot import Spot as SpotClient
+
+try:
+    from binance.spot import Spot as SpotClient
+except ImportError:
+    SpotClient = None  # spot 模块可选，只有套利策略需要
 
 from src.data.cache import DataCache
 
@@ -36,11 +40,13 @@ class BinanceRESTClient:
             base_url="https://testnet.binancefuture.com" if self.testnet
             else "https://fapi.binance.com",
         )
-        self.spot = SpotClient(
-            api_key=self.key, api_secret=self.secret,
-            base_url="https://testnet.binance.vision" if self.testnet
-            else "https://api.binance.com",
-        )
+        self.spot = None
+        if SpotClient is not None:
+            self.spot = SpotClient(
+                api_key=self.key, api_secret=self.secret,
+                base_url="https://testnet.binance.vision" if self.testnet
+                else "https://api.binance.com",
+            )
 
         self.cache = DataCache(ttl_seconds=3600)
         self._symbol_info: dict[str, dict] = {}
