@@ -7,6 +7,13 @@ import sys
 from pathlib import Path
 
 
+class _FlushHandler(logging.StreamHandler):
+    """每次写入后强制 flush，解决 systemd 捕获 stdout 时的缓冲问题"""
+    def emit(self, record):
+        super().emit(record)
+        self.flush()
+
+
 def setup_logger(config: dict) -> logging.Logger:
     """配置日志：控制台输出（由 systemd/nohup 负责落盘）"""
     log_config = config.get("logging", {})
@@ -34,11 +41,11 @@ def setup_logger(config: dict) -> logging.Logger:
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # 输出到 stderr（无缓冲，systemd/nohup 负责重定向到文件）
-    console = logging.StreamHandler(sys.stderr)
-    console.setLevel(level)
-    console.setFormatter(fmt)
-    logger.addHandler(console)
+    # 控制台输出，每次 flush（systemd/nohup 负责重定向到文件）
+    handler = _FlushHandler(sys.stdout)
+    handler.setLevel(level)
+    handler.setFormatter(fmt)
+    logger.addHandler(handler)
 
     return logger
 
