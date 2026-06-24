@@ -6,7 +6,8 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/home/admin/unified-trader
-ExecStart=/usr/bin/python3 main.py
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -u main.py
 ExecStop=/bin/bash scripts/stop.sh
 Restart=always
 RestartSec=10

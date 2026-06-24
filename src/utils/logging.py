@@ -34,8 +34,8 @@ def setup_logger(config: dict) -> logging.Logger:
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # 控制台输出（systemd/nohup 负责重定向到文件）
-    console = logging.StreamHandler(sys.stdout)
+    # 输出到 stderr（无缓冲，systemd/nohup 负责重定向到文件）
+    console = logging.StreamHandler(sys.stderr)
     console.setLevel(level)
     console.setFormatter(fmt)
     logger.addHandler(console)
