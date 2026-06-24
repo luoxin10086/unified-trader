@@ -11,6 +11,7 @@ from src.core.events import EventBus, Events
 from src.core.scheduler import Scheduler
 from src.data.feed_manager import FeedManager
 from src.execution.order_manager import OrderManager
+from src.recording.recorder import DataRecorder
 from src.risk.manager import RiskManager
 from src.strategies.base import BaseStrategy
 from src.utils.config import load_config, get_enabled_strategies
@@ -33,6 +34,9 @@ class Engine:
         self.feed: Optional[FeedManager] = None
         self.risk: Optional[RiskManager] = None
         self.order: Optional[OrderManager] = None
+
+        # 数据记录
+        self.recorder: Optional[DataRecorder] = None
 
         # 策略
         self.strategies: dict[str, BaseStrategy] = {}
@@ -73,6 +77,10 @@ class Engine:
         # 执行层
         self.order = OrderManager(self.ctx, self.events, self.feed.rest, self.config)
 
+        # 数据记录
+        self.recorder = DataRecorder(self.config.get("data_dir", "data"))
+        self.logger.info("数据记录器已初始化: %s", self.recorder.data_dir)
+
         # 策略
         self._load_strategies()
 
@@ -88,6 +96,7 @@ class Engine:
         self.scheduler.add("system.refresh_symbols", self._refresh_strategy_symbols, 300)
         self.scheduler.add("system.account_sync", self._sync_account, 300)  # 余额同步
         self.scheduler.add("system.exit_check", self._check_exits, 30)      # 止损检查
+        self.scheduler.add("system.equity_snapshot", self._equity_snapshot, 300)  # 权益快照
 
         self.logger.info(
             "引擎初始化完成 | 模式=%s | 策略=%s | 币种=%d",
@@ -240,6 +249,11 @@ class Engine:
 
         # 5. 执行入场
         pos = self.order.open_position(sig, strategy.name, risk_profile)
+
+        # 6. 记录信号
+        if self.recorder:
+            self.recorder.record_signal(sig)
+
         return pos is not None
 
     # ═══════ 系统循环 ═══════
@@ -262,6 +276,20 @@ class Engine:
         except Exception:
             pass
 
+    def _equity_snapshot(self) -> None:
+        """记录权益快照"""
+        if not self.recorder:
+            return
+        try:
+            acct = self.feed.rest.get_account()
+            wallet = float(acct.get("totalWalletBalance", 0))
+            avail = float(acct.get("availableBalance", 0))
+            margin = float(acct.get("totalPositionInitialMargin", 0))
+            upnl = float(acct.get("totalUnrealizedProfit", 0))
+            self.recorder.record_equity(wallet, avail, margin, upnl, self.ctx.position_count)
+        except Exception:
+            pass
+
     def _refresh_strategy_symbols(self) -> None:
         for name, strategy in self.strategies.items():
             try:
@@ -279,8 +307,14 @@ class Engine:
     def _on_position_closed(self, data: dict) -> None:
         pos = data.get("position")
         pnl = data.get("pnl", 0.0)
+        reason = data.get("reason", "manual")
         if pos and pos.strategy_name in self.strategies:
             self.strategies[pos.strategy_name].on_position_closed(pos, pnl)
+
+        # 记录订单
+        if self.recorder and pos:
+            pnl_pct = (pos.exit_price - pos.entry_price) / pos.entry_price * 100 if pos.exit_price and pos.entry_price else 0
+            self.recorder.record_order(pos, pnl, pnl_pct, reason)
 
     def _on_risk_limit(self, data: dict) -> None:
         reason = data.get("reason", "未知")

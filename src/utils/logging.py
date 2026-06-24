@@ -26,6 +26,9 @@ def setup_logger(config: dict) -> logging.Logger:
     if logger.handlers:
         return logger
 
+    # 阻止向 root logger 传播（避免重复输出）
+    logger.propagate = False
+
     # 格式
     fmt = logging.Formatter(
         "%(asctime)s | %(levelname)-7s | %(message)s",

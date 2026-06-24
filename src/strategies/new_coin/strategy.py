@@ -19,8 +19,8 @@ class NewCoinStrategy(BaseStrategy):
 
     def __init__(self, config: dict):
         super().__init__(config)
-        self.scanner: Optional[NewCoinScanner] = None
-        self.analyzer: Optional[NewCoinAnalyzer] = None
+        self.scanner = NewCoinScanner(None, self.config)  # REST 客户端由引擎注入
+        self.analyzer = NewCoinAnalyzer(self.config)
         self._symbols: list[str] = []
         self._scan_count: int = 0
         self._btc_price_5m_ago: float = 0.0
@@ -39,8 +39,6 @@ class NewCoinStrategy(BaseStrategy):
         return list(self._symbols)
 
     def on_start(self, ctx: SharedContext) -> None:
-        self.scanner = NewCoinScanner(None, self.config)  # REST client will be injected
-        self.analyzer = NewCoinAnalyzer(self.config)
         super().on_start(ctx)
 
     def set_rest_client(self, rest) -> None:
