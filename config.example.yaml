@@ -1,0 +1,117 @@
+# ═══════════════════════════════════════════════
+# 统一交易框架 — 配置文件
+# ═══════════════════════════════════════════════
+
+# API 配置
+api:
+  key: "YOUR_API_KEY"
+  secret: "YOUR_API_SECRET"
+  testnet: false
+  proxy: ""  # 国内服务器填代理地址
+
+# 运行模式
+dry_run: true  # true=只分析不下单
+
+# 日志
+logging:
+  level: "INFO"
+  file: "logs/trading.log"
+
+# ═══════ 策略配置 ═══════
+strategies:
+  # 新币策略 — 纯规则做多
+  new_coin:
+    enabled: true
+    max_positions: 3
+    order_usdt_per_symbol: 10
+    leverage: 3
+    stop_loss_pct: 16.7
+    take_profit_pct: 20.0
+    trailing_stop_activate_pct: 7.0
+    trailing_stop_callback_pct: 5.0
+    max_price_rise_pct: 50.0
+    scan_top_n: 10
+    loop_interval_seconds: 30
+    min_hold_minutes: 120
+    # 信号阈值
+    signal_long_threshold: 60
+    # 大单阈值
+    large_order_threshold_usdt: 50000
+    large_order_threshold_dynamic: true
+    money_flow_windows: [1, 5, 15]
+    # 过滤器
+    volatility_filter_enabled: true
+    volatility_window_minutes: 5
+    max_volatility_pct: 3.0
+    time_filter_enabled: true
+    skip_utc_hours: [0, 1, 2, 3, 4, 5, 6, 7]  # UTC 0-8 跳过
+    btc_crash_filter_enabled: true
+    btc_crash_threshold_pct: 2.0
+    # 主力确认
+    smart_money_filter_enabled: true
+    min_top_account_ratio: 1.0
+    min_taker_buy_sell_ratio: 0.7
+    # OI背离
+    oi_divergence_enabled: true
+    # 成交量激增
+    volume_surge_enabled: true
+    volume_surge_multiplier: 5.0
+    # 新币筛选
+    min_onboard_hours: 24
+    min_24h_volume_usdt: 1000000
+
+  # 趋势跟踪策略 — AI+规则
+  trend_following:
+    enabled: true
+    tickers: ["AVAXUSDT"]
+    leverage: 3
+    # AI 配置
+    ai:
+      call_interval: 30  # 每30分钟调用一次AI
+      max_calls_per_hour: 1
+      model: "qwen-plus"
+      provider: "openai"
+      base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    # 打分权重
+    weights:
+      ai: 50
+      macd: 25
+      taker: 10
+      smart_money: 10
+      rsi: 5
+    # 入场阈值
+    entry_threshold: 60
+    reverse_threshold: 65
+    # 退出参数
+    stop_loss_pct: 15.0
+    take_profit_pct: 10.0
+    trailing_stop_activate_pct: 3.0
+    trailing_stop_callback_pct: 7.0
+    # 过滤器
+    funding_rate_max: 0.003
+    cooldown_minutes: 15
+
+  # 资金费率套利（可选）
+  arbitrage:
+    enabled: false
+    capital_per_arb: 50
+    max_concurrent: 2
+    min_funding_rate: 0.0005
+    exit_funding_rate: 0.0001
+    leverage: 1
+    loop_interval: 300
+
+# ═══════ 全局风控 ═══════
+daily_risk:
+  max_loss_usdt: 15
+  max_trades_per_day: 20
+
+account_risk:
+  max_loss_pct: 15.0  # 账户亏损超过此值暂停交易
+  max_consecutive_losses: 3
+
+# ═══════ 通知 ═══════
+telegram:
+  enabled: false
+  bot_token: "YOUR_BOT_TOKEN"
+  chat_id: "YOUR_CHAT_ID"

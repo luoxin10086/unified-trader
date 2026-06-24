@@ -1,0 +1,7 @@
+# 统一交易框架依赖
+pyyaml>=6.0
+binance-futures-connector>=3.0
+websocket-client>=1.6
+pandas>=2.0
+numpy>=1.24
+requests>=2.28

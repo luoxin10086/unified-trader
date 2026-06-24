@@ -1,0 +1,17 @@
+[Unit]
+Description=Unified Trading Framework
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/admin/unified-trader
+ExecStart=/usr/bin/python3 main.py
+ExecStop=/bin/bash scripts/stop.sh
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/admin/unified-trader/logs/trading.log
+StandardError=append:/home/admin/unified-trader/logs/trading.log
+
+[Install]
+WantedBy=multi-user.target
